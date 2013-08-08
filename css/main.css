@@ -154,6 +154,7 @@ textarea {
     width: 77px;
     height: 112px;
     position: absolute;
+    z-index: 100;
 }
 .card.sA {
     background-position: 0px 0px

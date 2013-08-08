@@ -124,7 +124,21 @@ $(function() {
 
                 this.cache();
                 this.preload(['img/1000px-Svg-cards-2.0.svg.png']);
+                this.bindEvents();
+            },
 
+            cache: function() {
+                this.$start = $('#start');
+                this.$stop = $('#stop');
+                this.$pause = $('#pause');
+                this.$quantity = $('#quantity');
+                this.$speed = $('#speed');
+                this.$debug = $('#debug');
+                this.$gameArea = $('#game-area');
+                this.$gameTable = $('#game-table');
+            },
+
+            bindEvents: function() {
                 this.$start.click(function() {
                     if(module.game !== undefined) {
                         module.game.continueGame();
@@ -150,17 +164,6 @@ $(function() {
                     }
                     return false;
                 });
-            },
-
-            cache: function() {
-                this.$start = $('#start');
-                this.$stop = $('#stop');
-                this.$pause = $('#pause');
-                this.$quantity = $('#quantity');
-                this.$speed = $('#speed');
-                this.$debug = $('#debug');
-                this.$gameArea = $('#game-area');
-                this.$gameTable = $('#game-table');
             },
 
             getQuantity: function() {
