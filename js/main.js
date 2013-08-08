@@ -198,8 +198,11 @@ $(function() {
                 var R2 = L - 30;
                 var step = 360 / n;
 
-                var $fake_card = $('<div></div>').addClass('card');
-                var $fake_counter = $('<div></div>').addClass('game-counter');
+                // http://stackoverflow.com/questions/2345784/jquery-get-height-of-hidden-element-in-jquery
+                var $fake_card = $('<div></div>').addClass('card').css({visibility: 'hidden'}).appendTo(module.$gameArea);
+                var $fake_counter = $('<div></div>').addClass('game-counter').css({visibility: 'hidden'}).appendTo(module.$gameArea);
+
+                console.log(L, $fake_card.width(), $fake_counter.width());
 
                 players.forEach(function(player, i) {
                     var rot = step * i;
@@ -208,7 +211,6 @@ $(function() {
                     cosa = Math.cos(rot * Math.PI / 180);
                     x = (sina * R1 + L - $fake_card.width() / 2).toFixed(2);
                     y = (cosa * R1 + L - $fake_card.height() / 2).toFixed(2);
-                    //console.info(i, a, x, y);
 
                     player.$cartHolder = $('<div></div>')
                         .addClass('card')
@@ -218,7 +220,6 @@ $(function() {
 
                     x = (sina * R2 + L - $fake_counter.width() / 2).toFixed(2);
                     y = (cosa * R2 + L - $fake_counter.width() / 2).toFixed(2);
-                    //console.info(i, a, x, y);
 
                     player.$counter = $('<div></div>')
                         .addClass('game-counter')
@@ -227,6 +228,9 @@ $(function() {
                         .text(player.getCards().length)
                         .appendTo(module.$gameArea);
                 });
+
+                $fake_card.remove();
+                $fake_counter.remove();
             },
 
             putPlayerCard: function(player, card, shirt) {

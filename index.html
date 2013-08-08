@@ -27,14 +27,15 @@
                     <label for="quantity">Число игроков(1-6)</label>
                     <input type="number" id="quantity" value="4" />
                     <label for="speed">Длительность хода, мс</label>
-                    <input type="number" id="speed" value="5000" />
+                    <input type="number" id="speed" value="400" />
                     <label for="debug">debug</label>
                     <input type="checkbox" id="debug" />
                 </div>
-                <button id="start">go</button>
-                <button id="stop">stop</button>
-                <button id="pause">pause</button>
-
+                <div class="controls">
+                    <button id="start">go</button>
+                    <button id="stop">stop</button>
+                    <button id="pause">pause</button>
+                </div>
             </form>
         </div>
 
@@ -43,7 +44,7 @@
             <div class="game-area" id="game-area"></div>
         </div>
 
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
         <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.9.1.min.js"><\/script>')</script>
         <script src="js/plugins.js"></script>
         <script src="js/main.js"></script>
