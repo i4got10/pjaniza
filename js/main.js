@@ -123,6 +123,7 @@ $(function() {
                 module.options = $.extend(options);
 
                 this.cache();
+                this.preload(['/img/1000px-Svg-cards-2.0.svg.png']);
 
                 this.$start.click(function() {
                     if(module.game !== undefined) {
@@ -252,6 +253,12 @@ $(function() {
 
             decreaseCounter: function(player) {
                 player.$counter.text( parseInt(player.$counter.text()) - 1);
+            },
+
+            preload: function (arrayOfImages) {
+                $(arrayOfImages).each(function(){
+                    $('<img/>')[0].src = this;
+                });
             }
         };
     })().init();
