@@ -123,7 +123,7 @@ $(function() {
                 module.options = $.extend(options);
 
                 this.cache();
-                this.preload(['/img/1000px-Svg-cards-2.0.svg.png']);
+                this.preload(['img/1000px-Svg-cards-2.0.svg.png']);
 
                 this.$start.click(function() {
                     if(module.game !== undefined) {
@@ -405,6 +405,7 @@ var Game = function(application, opts) {
     // turn
     var gameTurn = function() {
         var cards = {};
+        // TODO в случае спора играют тока спорящие игроки
         players.forEach(function(player) {
             cards[player.getId()] = player.putCard(turn_status == TURN_DISPUTE);
         });
