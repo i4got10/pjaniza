@@ -23,12 +23,18 @@
 
         <div class="game-settings">
             <form action="#">
-                <label for="quantity">Q</label>
-                <input type="number" id="quantity" value="4" />
-                <label for="speed">S</label>
-                <input type="number" id="speed" value="5000" />
+                <div class="clearfix">
+                    <label for="quantity">Число игроков(1-6)</label>
+                    <input type="number" id="quantity" value="4" />
+                    <label for="speed">Длительность хода, мс</label>
+                    <input type="number" id="speed" value="5000" />
+                    <label for="debug">debug</label>
+                    <input type="checkbox" id="debug" />
+                </div>
                 <button id="start">go</button>
                 <button id="stop">stop</button>
+                <button id="pause">pause</button>
+
             </form>
         </div>
 

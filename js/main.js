@@ -1,20 +1,52 @@
+/*
+ Правила игры
+
+ Происхождение игры в «Пьяницу» неизвестно. Есть мнение,
+ что свое название она приобрела из-за простых правил и еще потому,
+ что победа в игре зависит исключительно от везения. Играть в «Пьяницу» очень просто.
+ На старте колода из 52 карт тасуется и делится между всеми игроками поровну.
+ Далее каждый игрок кладет свою стопку карт перед собой «рубашкой» вверх.
+ Игроки одновременно переворачивают верхнюю карту.
+ Тот, у кого карта оказывается больше по достоинству, забирает все открытые карты себе и кладет их под свою стопку.
+ Самой большой картой в «Пьянице» считается туз, самой маленькой — двойка.
+
+ Если две карты оказываются одного достоинства, то начинается «война».
+ Игроки кладут «рубашкой» вверх следующую карту, а следом за ней — карту лицом вверх.
+ Игрок с большей картой забирает все карты на кону.
+ Если карты снова оказываются равными, то «война» продолжается таким же образом.
+ Снова одну карту кладут «рубашкой» вверх, а за ней — лицом вверх.
+ И так далее до определения победителя. Выигравший «поединок» забирает все карты на кону.
+ Игра продолжается, пока у одного игрока не окажутся все карты — он и считается победителем.
+*/
+
+function GameException(msg) {
+    this.toString = function() {
+        return msg;
+    };
+}
+
 var Player = function(application, pid) {
     var id = pid;
     var cards = [];
 
     this.$cartHolder = null;
-
-    this.pushCard = function() {};
+    this.$counter = null;
 
     /* положить карту на стол */
-    this.putCard = function() {
+    this.putCard = function(shirt) {
+        shirt = shirt || false;
+        if(cards.length == 0) {
+            throw new GameException('Player ' + id + ' has not cards.' );
+        }
         var card = cards.pop();
-        application.putPlayerCard(this, card);
+        application.decreaseCounter(this);
+        application.putPlayerCard(this, card, shirt);
         return card;
     };
 
-    /* взять карту */
+    /* взять карту и положить в стопку */
     this.takeCard = function(card) {
+        application.increaseCounter(this);
         return cards.unshift(card);
     };
 
@@ -23,12 +55,20 @@ var Player = function(application, pid) {
         cards.push(card);
     };
 
+    this.leaveGame = function() {
+        application.removePlayer(this);
+    };
+
     this.getId = function() {
         return id;
     };
 
     this.getCards = function() {
         return cards;
+    };
+
+    this.toString = function() {
+        return 'Player ' + id + ' with cards ' + cards;
     };
 };
 
@@ -56,6 +96,7 @@ var Card = function(color, value) {
     };
 
     function gt(v1, v2) {
+        // TODO 2 > A
         return priorityMatrix[v1] > priorityMatrix[v2];
     }
 
@@ -84,13 +125,27 @@ $(function() {
                 this.cache();
 
                 this.$start.click(function() {
-                    module.startGame(module.getQuantity());
+                    if(module.game !== undefined) {
+                        module.game.continueGame();
+                    }
+                    else {
+                        module.startGame();
+                    }
+
                     return false;
                 });
 
                 this.$stop.click(function() {
                     if(module.game !== undefined) {
                         module.game.stopGame();
+                        delete module.game;
+                    }
+                    return false;
+                });
+
+                this.$pause.click(function() {
+                    if(module.game !== undefined) {
+                        module.game.pauseGame();
                     }
                     return false;
                 });
@@ -99,10 +154,12 @@ $(function() {
             cache: function() {
                 this.$start = $('#start');
                 this.$stop = $('#stop');
+                this.$pause = $('#pause');
                 this.$quantity = $('#quantity');
                 this.$speed = $('#speed');
+                this.$debug = $('#debug');
                 this.$gameArea = $('#game-area');
-                this.cardHolders = [];
+                this.$gameTable = $('#game-table');
             },
 
             getQuantity: function() {
@@ -113,78 +170,112 @@ $(function() {
                 return parseInt(this.$speed.val());
             },
 
+            isDebug: function() {
+                return this.$debug.is(':checked');
+            },
+
             startGame: function() {
                 var module = this;
 
                 var opts = {
                     quantity: module.getQuantity(),
-                    speed: module.getSpeed()
+                    speed: module.getSpeed(),
+                    debug: module.isDebug()
                 };
 
                 this.game = new Game(module, opts);
             },
 
-            createCardHolders: function(players) {
+            createPlayers: function(players) {
                 var module = this;
 
-                // TODO clear module.cardHolders
+                var n = players.length;
+                // размер игровой зоны
+                var L = module.$gameArea.width() / 2;
+                // радиус окружности на которую кладутся карты
+                var R1 = 130;
+                // радиус окружности на которую ставятся счетчики
+                var R2 = L - 30;
+                var step = 360 / n;
+
+                var $fake_card = $('<div></div>').addClass('card');
+                var $fake_counter = $('<div></div>').addClass('game-counter');
 
                 players.forEach(function(player, i) {
-                    var n = players.length;
-                    // размер игровой зоны
-                    var L = module.$gameArea.width() / 2;
-                    // радиус окружности на которую кладутся карты
-                    var R = 130;
-                    var step = 360 / n;
-
-                    var $fake = $('<div></div>').addClass('card');
-
-                    var a = step * i;
-                    var x, y;
-                    x = (Math.cos(a * Math.PI / 180) * R + L - $fake.width() / 2).toFixed(2);
-                    y = (Math.sin(a * Math.PI / 180) * R + L - $fake.height() / 2).toFixed(2);
+                    var rot = step * i;
+                    var x, y, sina, cosa;
+                    sina = Math.sin(rot * Math.PI / 180);
+                    cosa = Math.cos(rot * Math.PI / 180);
+                    x = (sina * R1 + L - $fake_card.width() / 2).toFixed(2);
+                    y = (cosa * R1 + L - $fake_card.height() / 2).toFixed(2);
                     //console.info(i, a, x, y);
 
-                    var $ch = $('<div></div>')
+                    player.$cartHolder = $('<div></div>')
                         .addClass('card')
                         .attr('id', 'card-holder-' + player.getId())
                         .css({top: y + 'px', left: x + 'px'})
                         .appendTo(module.$gameArea);
 
-                    player.$cartHolder = $ch;
+                    x = (sina * R2 + L - $fake_counter.width() / 2).toFixed(2);
+                    y = (cosa * R2 + L - $fake_counter.width() / 2).toFixed(2);
+                    //console.info(i, a, x, y);
 
-                    module.cardHolders.push($ch);
+                    player.$counter = $('<div></div>')
+                        .addClass('game-counter')
+                        .attr('id', 'counter-' + player.getId())
+                        .css({top: y + 'px', left: x + 'px'})
+                        .text(player.getCards().length)
+                        .appendTo(module.$gameArea);
                 });
             },
 
-            putPlayerCard: function(player, card) {
+            putPlayerCard: function(player, card, shirt) {
                 player.$cartHolder
                     .removeClass()
                     .addClass('card')
-                    .addClass(card.toCssString())
+                    .addClass(shirt ? 'shirt' : card.toCssString())
                 ;
+            },
+
+            removePlayer: function(player) {
+                player.$cartHolder.remove();
+                player.$counter.remove();
+            },
+
+            increaseCounter: function(player) {
+                player.$counter.text( parseInt(player.$counter.text()) + 1);
+            },
+
+            decreaseCounter: function(player) {
+                player.$counter.text( parseInt(player.$counter.text()) - 1);
             }
         };
     })().init();
 });
 
 var Game = function(application, opts) {
+    var context = this;
+
     var defaults = {
         quantity: 3,
-        speed: 2500
+        speed: 2500,
+        debug: false
     };
 
     var options = $.extend(defaults, opts);
 
     if(options.quantity <= 0) {
-        console.error(options.quantity);
+        error(options.quantity);
         return;
     }
 
-    function EmptyArrayException() {}
-
+    // main loop
+    var loop;
     var players = [];
     var deck = [];
+    var TURN_NORMAL = 1, TURN_DISPUTE = 2;
+    var turn_status = null;
+    var dispute_cards = [];
     /*
      ♤, ♧, ♡, ♢
      spades, clubs, hearts, diamonds
@@ -210,8 +301,8 @@ var Game = function(application, opts) {
     }
 
     function startGame() {
-        console.info('game started.');
-        console.info(options);
+        info('game started.');
+        info(options);
 
         var shuffleDeck = shuffleArray(deck);
 
@@ -225,75 +316,164 @@ var Game = function(application, opts) {
             pl_index = pl_index === options.quantity - 1 ? 0 : pl_index + 1;
         });
 
-        application.createCardHolders(players);
+        application.createPlayers(players);
+
+        turn_status = TURN_NORMAL;
     }
 
-    this.stopGame = function() {
+    this.pauseGame = function() {
         clearInterval(loop);
     };
 
+    this.stopGame = function() {
+        context.pauseGame();
+        players.forEach(function(player) {
+            player.leaveGame();
+        });
+    };
+
+    this.continueGame = function() {
+        startLoop();
+    };
+
+    function startLoop() {
+        loop = setInterval(gameTurn, options.speed);
+    }
+
     function findBestCard(cards) {
         if(cards.length < 2) {
-            throw new EmptyArrayException;
+            throw new GameException('Not enought cards to get best.');
         }
 
-        var max = [cards[0]];
-        var res = ["0"];
-        for (i in cards) {
-            if (i > 0 && cards.hasOwnProperty(i)) {
-                if(cards[i].compare('>', max[0])) {
-                    max = [cards[i]];
-                    res = [i];
-                }
-                else if(cards[i].compare('==', max[0])) {
-                    max.push(cards[i]);
-                    res.push(i);
-                }
+        var max = [];
+        var res = [];
+        for (var i in cards) {
+            if(!cards.hasOwnProperty(i)) { continue; }
+
+            if(max.length == 0 || cards[i].compare('>', max[0])) {
+                max = [cards[i]];
+                res = [i];
+            }
+            else if(cards[i].compare('==', max[0])) {
+                max.push(cards[i]);
+                res.push(i);
             }
         }
 
         return res;
     }
 
+    function printPlayers() {
+        for(var i = 0; i < players.length; i++) {
+            info(players[i]);
+        }
+    }
+
+    function getPlayerById(id) {
+        for(var i = 0; i < players.length; i++) {
+            if(players[i].getId() == id) {
+                return players[i];
+            }
+        }
+
+        throw new GameException('Player ' + id + ' not found.' );
+    }
+
+    function log(msg) {
+        !options.debug || console.log(msg);
+    }
+
+    function info(msg) {
+        !options.debug || console.info(msg);
+    }
+
+    function error(msg) {
+        !options.debug || console.error(msg);
+    }
+
     // turn
     var gameTurn = function() {
         var cards = {};
         players.forEach(function(player) {
-            cards[player.getId()] = player.putCard();
+            cards[player.getId()] = player.putCard(turn_status == TURN_DISPUTE);
         });
 
-        var bestCardN = findBestCard(cards);
-        console.info(bestCardN);
-        if(bestCardN.length > 1) {
+        if(turn_status == TURN_NORMAL) {
+            info('NORMAL TURN');
+            info(cards);
+            var bestCardN = findBestCard(cards);
+            info('Best ' + bestCardN);
+            if(bestCardN.length > 1) {
+                turn_status = TURN_DISPUTE;
 
+                for (var k in cards) {
+                    if (cards.hasOwnProperty(k)) {
+                        dispute_cards.push(cards[k]);
+                    }
+                }
+
+            }
+            else {
+                turn_status = TURN_NORMAL;
+
+                var player = getPlayerById(bestCardN[0]);
+                var win_amount = 0;
+                for (var k in cards) {
+                    if (cards.hasOwnProperty(k)) {
+                        player.takeCard(cards[k]);
+                        win_amount++;
+                    }
+                }
+                if(dispute_cards.length > 0) {
+                    dispute_cards.forEach(function(card) {
+                        player.takeCard(card);
+                        win_amount++;
+                    });
+                    dispute_cards = [];
+                }
+                info('player ' + player.getId() + ' grab ' + win_amount + ' cards');
+            }
         }
-        else {
-            for (i in cards) {
-                if (cards.hasOwnProperty(i)) {
-                    // find by id TODO
-                    players[bestCardN[0]].takeCard(cards[i]);
+        else if(turn_status == TURN_DISPUTE) {
+            info('DISPUTE TURN');
+
+            for (var k in cards) {
+                if (cards.hasOwnProperty(k)) {
+                    dispute_cards.push(cards[k]);
                 }
             }
+
+            turn_status = TURN_NORMAL;
         }
 
-        // проверим игроков на количество карт
-        players.forEach(function(player, i) {
-            if(player.getCards().length === 0) {
-                var index = players.indexOf(i);
-                players.splice(index, 1);
 
-                application.createCardHolders(players);
+        // проверим игроков на количество карт
+        var leavers = [];
+        players.forEach(function(player) {
+            if(player.getCards().length === 0) {
+                leavers.push(player);
             }
         });
 
-        console.info('turn');
+        if(leavers.length > 0) {
+            leavers.forEach(function(player) {
+                players.splice(players.indexOf(player), 1);
+                player.leaveGame();
+                info('player ' + player.getId() + ' leave the game.');
+            });
+        }
+
+        if(players.length == 1) {
+            info('Player ' + players[0].getId() + ' win the game.');
+            context.stopGame();
+        }
     };
 
     // start game
     startGame();
+    printPlayers();
     gameTurn(); // <-- first turn
 
-    // main loop
-    var loop = setInterval(gameTurn, options.speed);
+    startLoop();
 };
 

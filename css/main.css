@@ -105,6 +105,13 @@ textarea {
     width: 600px;
     margin: 50px auto 50px;
 }
+.game-settings label {
+    float: left;
+    width: 200px;
+}
+.game-settings input {
+    display: block;
+}
 .game-area {
     position: absolute;
     width: 80%;
@@ -122,18 +129,25 @@ textarea {
     top: 5%;
     left: 5%;
     border-radius: 50% 50% 50% 50%;
-
+    box-shadow: -1px -1px 5px #F7F9F7 inset;
     background-color: #045203;
+}
+.game-counter {
+    background: none repeat scroll 0 0 #004704;
+    border-radius: 50% 50% 50% 50%;
+    box-shadow: 1px 1px 3px #093300 inset;
+    color: #BABABA;
+    height: 34px;
+    line-height: 34px;
+    position: absolute;
+    text-align: center;
+    width: 34px;
 }
 .card {
     background: url("../img/1000px-Svg-cards-2.0.svg.png") 0 0 transparent no-repeat;
     width: 77px;
     height: 112px;
     position: absolute;
-}
-.card-holder {
-    position: absolute;
-    background-color: darkred;
 }
 .card.sA {
     background-position: 0px 0px
