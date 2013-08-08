@@ -134,11 +134,14 @@ $(function() {
                 this.$quantity = $('#quantity');
                 this.$speed = $('#speed');
                 this.$debug = $('#debug');
+                this.$next = $('#next');
                 this.$gameArea = $('#game-area');
                 this.$gameTable = $('#game-table');
             },
 
             bindEvents: function() {
+                var module = this;
+
                 this.$start.click(function() {
                     if(module.game !== undefined) {
                         module.game.continueGame();
@@ -161,6 +164,13 @@ $(function() {
                 this.$pause.click(function() {
                     if(module.game !== undefined) {
                         module.game.pauseGame();
+                    }
+                    return false;
+                });
+
+                this.$next.click(function() {
+                    if(module.game !== undefined) {
+                        module.game.nextTurn();
                     }
                     return false;
                 });
@@ -348,6 +358,10 @@ var Game = function(application, opts) {
 
     this.continueGame = function() {
         startLoop();
+    };
+
+    this.nextTurn = function() {
+        gameTurn();
     };
 
     function startLoop() {
