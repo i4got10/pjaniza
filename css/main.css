@@ -154,6 +154,16 @@ textarea {
     width: 77px;
     height: 112px;
     position: absolute;
+    z-index: 100;
+}
+.card.frozen {
+    /*-webkit-transform:rotate(50deg);
+    -moz-transform:rotate(50deg);
+    -o-transform:rotate(50deg);
+    -ms-transform:rotate(50deg);
+    transform:rotate(50deg);*/
+
+    opacity: 0.7;
 }
 .card.sA {
     background-position: 0px 0px
