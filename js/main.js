@@ -174,6 +174,14 @@ $(function() {
                     }
                     return false;
                 });
+
+                $('html').keyup(function(event) {
+                    if (event.which == 39/* стрелка вправо */) {
+                        if(module.game !== undefined) {
+                            module.game.nextTurn();
+                        }
+                    }
+                });
             },
 
             getQuantity: function() {
@@ -260,6 +268,10 @@ $(function() {
                 player.$counter.remove();
             },
 
+            markFrozen: function(player) {
+                player.$cartHolder.addClass('frozen');
+            },
+
             increaseCounter: function(player) {
                 player.$counter.text( parseInt(player.$counter.text()) + 1);
             },
@@ -293,14 +305,17 @@ var Game = function(application, opts) {
         return;
     }
 
+    var TURN_NORMAL = 1, TURN_DISPUTE = 2;
+
     // main loop
     var loop;
     var players = [];
     var deck = [];
-    var TURN_NORMAL = 1, TURN_DISPUTE = 2;
     var turn_status = null;
     var dispute_cards = [];
-    /*
+    var dispute_players = [];
+
+    /* create deck
      ♤, ♧, ♡, ♢
      spades, clubs, hearts, diamonds
      */
@@ -380,11 +395,11 @@ var Game = function(application, opts) {
 
             if(max.length == 0 || cards[i].compare('>', max[0])) {
                 max = [cards[i]];
-                res = [i];
+                res = [parseInt(i)];
             }
             else if(cards[i].compare('==', max[0])) {
                 max.push(cards[i]);
-                res.push(i);
+                res.push(parseInt(i));
             }
         }
 
@@ -421,46 +436,87 @@ var Game = function(application, opts) {
 
     // turn
     var gameTurn = function() {
+        // hash array (pid => card)
         var cards = {};
-        // TODO в случае спора играют тока спорящие игроки
-        players.forEach(function(player) {
-            cards[player.getId()] = player.putCard(turn_status == TURN_DISPUTE);
-        });
+
+        // играют только спорящие игроки
+        if(dispute_players.length > 0) {
+            // TODO может возникнуть ситуация когда у игрока хватило карт только на рубашку или даже не хватило на рубашку
+            dispute_players.forEach(function(player) {
+                cards[player.getId()] = player.putCard(turn_status == TURN_DISPUTE);
+            });
+        }
+        else {
+            players.forEach(function(player) {
+                cards[player.getId()] = player.putCard(turn_status == TURN_DISPUTE);
+            });
+        }
+
+        info(cards);
 
         if(turn_status == TURN_NORMAL) {
             info('NORMAL TURN');
-            info(cards);
+
             var bestCardN = findBestCard(cards);
             info('Best ' + bestCardN);
+
+            // спор
             if(bestCardN.length > 1) {
                 turn_status = TURN_DISPUTE;
 
+                // отложим карты
                 for (var k in cards) {
                     if (cards.hasOwnProperty(k)) {
                         dispute_cards.push(cards[k]);
                     }
                 }
 
+                dispute_players = [];
+                // определим спорящих игроков
+                players.forEach(function(player) {
+                   if(bestCardN.indexOf(player.getId()) == -1) {
+                       application.markFrozen(player);
+                   }
+                   else {
+                       dispute_players.push(player);
+                   }
+                });
             }
+            // явный победитель
             else {
                 turn_status = TURN_NORMAL;
 
-                var player = getPlayerById(bestCardN[0]);
+                if(dispute_players.length > 0) {
+                    dispute_players = [];
+                }
+
+                players.forEach(function(player) {
+                    if(bestCardN.indexOf(player.getId()) == -1) {
+                        application.markFrozen(player);
+                    }
+                });
+
+                var winner = getPlayerById(bestCardN[0]);
                 var win_amount = 0;
+
+                // игрок забирает карты с текущей раздачи
                 for (var k in cards) {
                     if (cards.hasOwnProperty(k)) {
-                        player.takeCard(cards[k]);
+                        winner.takeCard(cards[k]);
                         win_amount++;
                     }
                 }
+
+                // и все карты на кону
                 if(dispute_cards.length > 0) {
                     dispute_cards.forEach(function(card) {
-                        player.takeCard(card);
+                        winner.takeCard(card);
                         win_amount++;
                     });
                     dispute_cards = [];
                 }
-                info('player ' + player.getId() + ' grab ' + win_amount + ' cards');
+
+                info('player ' + winner.getId() + ' grab ' + win_amount + ' cards');
             }
         }
         else if(turn_status == TURN_DISPUTE) {
@@ -494,7 +550,7 @@ var Game = function(application, opts) {
 
         if(players.length == 1) {
             info('Player ' + players[0].getId() + ' win the game.');
-            context.stopGame();
+            context.pauseGame();
         }
     };
 
@@ -505,4 +561,3 @@ var Game = function(application, opts) {
 
     startLoop();
 };
-
