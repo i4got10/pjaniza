@@ -422,6 +422,14 @@ var Game = function(application, opts) {
         throw new GameException('Player ' + id + ' not found.' );
     }
 
+    function throwPlayer(player, reason) {
+        reason = reason || '';
+        players.splice(players.indexOf(player), 1);
+        dispute_players.splice(dispute_players.indexOf(player), 1);
+        player.leaveGame();
+        info('player ' + player.getId() + ' leave the game.' + reason);
+    }
+
     function log(msg) {
         !options.debug || console.log(msg);
     }
@@ -542,9 +550,7 @@ var Game = function(application, opts) {
 
         if(leavers.length > 0) {
             leavers.forEach(function(player) {
-                players.splice(players.indexOf(player), 1);
-                player.leaveGame();
-                info('player ' + player.getId() + ' leave the game.');
+                throwPlayer(player);
             });
         }
 
