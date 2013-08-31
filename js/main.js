@@ -76,10 +76,10 @@ var Player = function(application, pid) {
 
 var Card = function(color, value) {
     var convertMatrix = {
-        '♤': 's',
-        '♧': 'c',
-        '♡': 'h',
-        '♢': 'd'
+        '♠': 's',
+        '♣': 'c',
+        '♥': 'h',
+        '♦': 'd'
     };
 
     var priorityMatrix = {
@@ -317,9 +317,10 @@ var Game = function(application, opts) {
 
     /* create deck
      ♤, ♧, ♡, ♢
+     ♠, ♣, ♥, ♦
      spades, clubs, hearts, diamonds
      */
-    ['♤', '♧', '♡', '♢'].forEach(function(color) {
+    ['♠', '♣', '♥', '♦'].forEach(function(color) {
         ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'].forEach(function(value) {
             deck.push(new Card(color, value));
         });
@@ -426,8 +427,11 @@ var Game = function(application, opts) {
     function throwPlayer(player, reason) {
         reason = reason || '';
         players.splice(players.indexOf(player), 1);
-        // TODO может возникнуть ситуация когда у игрока хватило карт только на рубашку или даже не хватило на рубашку
-        dispute_players.splice(dispute_players.indexOf(player), 1);
+        var pos = dispute_players.indexOf(player);
+        if(pos != -1) {
+            dispute_players.splice(pos, 1);
+        }
+
         player.leaveGame();
         info('player ' + player.getId() + ' leave the game.' + reason);
     }
