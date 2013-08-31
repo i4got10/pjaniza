@@ -38,21 +38,23 @@ var Player = function(application, pid) {
         if(cards.length == 0) {
             throw new GameException('Player ' + id + ' has not cards.' );
         }
+
         var card = cards.pop();
         application.decreaseCounter(this);
         application.putPlayerCard(this, card, shirt);
         return card;
     };
 
-    /* взять карту и положить в стопку */
-    this.takeCard = function(card) {
-        application.increaseCounter(this);
-        return cards.unshift(card);
-    };
+    /* взять карту */
+    this.takeCard = function(card, pos) {
+        if(pos == 'end') {
+            application.increaseCounter(this);
+            cards.unshift(card);
+        }
+        else {
+            cards.push(card);
+        }
 
-    /* дать карту */
-    this.giveCard = function(card) {
-        cards.push(card);
     };
 
     this.leaveGame = function() {
@@ -74,10 +76,10 @@ var Player = function(application, pid) {
 
 var Card = function(color, value) {
     var convertMatrix = {
-        '♤': 's',
-        '♧': 'c',
-        '♡': 'h',
-        '♢': 'd'
+        '♠': 's',
+        '♣': 'c',
+        '♥': 'h',
+        '♦': 'd'
     };
 
     var priorityMatrix = {
@@ -224,8 +226,6 @@ $(function() {
                 var $fake_card = $('<div></div>').addClass('card').css({visibility: 'hidden'}).appendTo(module.$gameArea);
                 var $fake_counter = $('<div></div>').addClass('game-counter').css({visibility: 'hidden'}).appendTo(module.$gameArea);
 
-                console.log(L, $fake_card.width(), $fake_counter.width());
-
                 players.forEach(function(player, i) {
                     var rot = step * i;
                     var x, y, sina, cosa;
@@ -281,7 +281,7 @@ $(function() {
             },
 
             preload: function (arrayOfImages) {
-                $(arrayOfImages).each(function(){
+                $(arrayOfImages).each(function() {
                     $('<img/>')[0].src = this;
                 });
             }
@@ -317,9 +317,10 @@ var Game = function(application, opts) {
 
     /* create deck
      ♤, ♧, ♡, ♢
+     ♠, ♣, ♥, ♦
      spades, clubs, hearts, diamonds
      */
-    ['♤', '♧', '♡', '♢'].forEach(function(color) {
+    ['♠', '♣', '♥', '♦'].forEach(function(color) {
         ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'].forEach(function(value) {
             deck.push(new Card(color, value));
         });
@@ -351,7 +352,8 @@ var Game = function(application, opts) {
 
         var pl_index = 0;
         shuffleDeck.forEach(function(card) {
-            players[pl_index].giveCard(card);
+            players[pl_index].takeCard(card);
+            // reset counter
             pl_index = pl_index === options.quantity - 1 ? 0 : pl_index + 1;
         });
 
@@ -425,7 +427,11 @@ var Game = function(application, opts) {
     function throwPlayer(player, reason) {
         reason = reason || '';
         players.splice(players.indexOf(player), 1);
-        dispute_players.splice(dispute_players.indexOf(player), 1);
+        var pos = dispute_players.indexOf(player);
+        if(pos != -1) {
+            dispute_players.splice(pos, 1);
+        }
+
         player.leaveGame();
         info('player ' + player.getId() + ' leave the game.' + reason);
     }
@@ -449,7 +455,6 @@ var Game = function(application, opts) {
 
         // играют только спорящие игроки
         if(dispute_players.length > 0) {
-            // TODO может возникнуть ситуация когда у игрока хватило карт только на рубашку или даже не хватило на рубашку
             dispute_players.forEach(function(player) {
                 cards[player.getId()] = player.putCard(turn_status == TURN_DISPUTE);
             });
@@ -510,7 +515,7 @@ var Game = function(application, opts) {
                 // игрок забирает карты с текущей раздачи
                 for (var k in cards) {
                     if (cards.hasOwnProperty(k)) {
-                        winner.takeCard(cards[k]);
+                        winner.takeCard(cards[k], 'end');
                         win_amount++;
                     }
                 }
@@ -518,7 +523,7 @@ var Game = function(application, opts) {
                 // и все карты на кону
                 if(dispute_cards.length > 0) {
                     dispute_cards.forEach(function(card) {
-                        winner.takeCard(card);
+                        winner.takeCard(card, 'end');
                         win_amount++;
                     });
                     dispute_cards = [];
